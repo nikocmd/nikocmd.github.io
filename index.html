@@ -1,36 +1,805 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-	<title>Bienvenue sur mon site</title>
-	<style>
-		body {
-			margin: 0;
-			padding: 0;
-		}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GHOST//WAVE — Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050508;
+    --bg2: #0a0a12;
+    --panel: #0d0d18;
+    --border: #1a1a2e;
+    --cyan: #00f5ff;
+    --pink: #ff0080;
+    --purple: #7b00ff;
+    --yellow: #f5e642;
+    --text: #c8d8e8;
+    --text-dim: #4a5568;
+    --glow-cyan: 0 0 10px #00f5ff88, 0 0 30px #00f5ff33;
+    --glow-pink: 0 0 10px #ff008088, 0 0 30px #ff008033;
+  }
 
-		.fullscreen-image {
-			background-image: url('https://i.pinimg.com/564x/e3/5e/d3/e35ed368ef78105c07168553e9626943.jpg');
-			background-size: 800px;
-			background-position: center;
-			height: 100vh;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-		.fullscreen-image h1 {
-			color: white;
-			font-size: 5em;
-			text-align: center;
-			text-shadow: 2px 2px #000;
-			margin: 0;
-			padding: 0;
-		}
-	</style>
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,245,255,0.015) 2px,
+      rgba(0,245,255,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .logo span { color: var(--pink); text-shadow: var(--glow-pink); }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .now-playing {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--cyan);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .now-playing::before {
+    content: 'NOW PLAYING';
+    position: absolute;
+    top: 8px; right: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    opacity: 0.5;
+    letter-spacing: 2px;
+  }
+
+  .now-playing::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--purple), var(--cyan), var(--pink));
+    animation: scanline 3s linear infinite;
+  }
+
+  @keyframes scanline {
+    0%   { transform: scaleX(0); transform-origin: left; }
+    50%  { transform: scaleX(1); transform-origin: left; }
+    51%  { transform: scaleX(1); transform-origin: right; }
+    100% { transform: scaleX(0); transform-origin: right; }
+  }
+
+  .track-artwork {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    border: 1px solid var(--cyan);
+    box-shadow: var(--glow-cyan);
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .track-artwork img { width:100%; height:100%; object-fit:cover; display:block; }
+  .track-artwork .placeholder { font-size:28px; opacity:.6; }
+
+  .track-info-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .track-meta { flex:1; min-width:0; }
+
+  .track-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+
+  .track-artist {
+    font-size: 13px;
+    color: var(--cyan);
+    font-weight: 300;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    border: 1px solid;
+    margin-top: 4px;
+  }
+
+  .tag-sc { color: #ff5500; border-color: #ff550066; }
+
+  .waveform-bar {
+    height: 40px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  .waveform-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    padding: 4px 6px;
+    position: absolute;
+    inset: 0;
+  }
+
+  .waveform-bars .bar {
+    flex: 1;
+    background: var(--border);
+    border-radius: 1px;
+  }
+
+  .progress-fill {
+    position: absolute;
+    left:0; top:0; bottom:0;
+    background: linear-gradient(90deg, rgba(123,0,255,.3), rgba(0,245,255,.3));
+    border-right: 2px solid var(--cyan);
+    box-shadow: 2px 0 10px var(--cyan);
+    transition: width .5s linear;
+    pointer-events: none;
+  }
+
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn.active { border-color: var(--cyan); color: var(--cyan); box-shadow: var(--glow-cyan); }
+
+  .btn-icon { width:36px; height:36px; }
+
+  .btn-play {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    box-shadow: var(--glow-cyan);
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-play:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #00f5ffaa, 0 0 40px #00f5ff44;
+  }
+
+  #sc-widget { display:none; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .corner-tl, .corner-br {
+    position: absolute;
+    width: 12px; height: 12px;
+    pointer-events: none;
+  }
+
+  .corner-tl { top:0; left:0; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
+  .corner-br { bottom:0; right:0; border-bottom:2px solid var(--pink); border-right:2px solid var(--pink); }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+
+  .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  .playlist-list {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .playlist-list::-webkit-scrollbar { width:3px; }
+  .playlist-list::-webkit-scrollbar-track { background: var(--bg2); }
+  .playlist-list::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(26,26,46,.5);
+    transition: background .1s;
+  }
+
+  .track-item:hover { background: rgba(0,245,255,.04); }
+
+  .track-item.active {
+    background: rgba(0,245,255,.07);
+    border-left: 2px solid var(--cyan);
+  }
+
+  .track-item.active .item-title { color: var(--cyan); }
+
+  .item-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .track-item.active .item-num { color: var(--cyan); }
+
+  .item-art {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), var(--cyan));
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .item-art img { width:100%; height:100%; object-fit:cover; }
+
+  .item-info { flex:1; min-width:0; }
+
+  .item-title {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .item-artist {
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-fav {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+
+  .item-fav.on { color: var(--pink); text-shadow: var(--glow-pink); }
+  .item-fav:hover { color: var(--pink); }
+
+  .add-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 14px;
+  }
+
+  .add-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .add-row { display:flex; gap:8px; }
+
+  .add-input {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .add-input:focus { border-color: var(--cyan); }
+  .add-input::placeholder { color: var(--text-dim); }
+
+  .btn-add {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border: none;
+    color: #fff;
+    padding: 8px 14px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-add:hover { opacity:.85; }
+
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .vol-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    width: 24px;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    cursor: pointer;
+  }
+
+  .vol-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    width: 28px;
+    text-align: right;
+  }
+
+  @keyframes glitch {
+    0%,95%,100% { transform:none; text-shadow:none; }
+    96% { transform:skew(-1deg); text-shadow:2px 0 var(--pink),-2px 0 var(--cyan); }
+    98% { transform:skew(1deg); text-shadow:-2px 0 var(--pink),2px 0 var(--cyan); }
+  }
+
+  .playing .track-title { animation: glitch 5s infinite; }
+
+  .empty-msg {
+    padding: 24px;
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+</style>
 </head>
 <body>
-	<div class="fullscreen-image">
-		<h1>Bonjour</h1>
-	</div>
+
+<div class="app">
+
+  <div class="header">
+    <div class="logo">GHOST<span>//</span>WAVE</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;">SYS::ONLINE</span>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+
+  <iframe id="sc-widget" src="" allow="autoplay"></iframe>
+
+  <div class="now-playing" id="now-playing-panel">
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+
+    <div class="track-info-row">
+      <div class="track-artwork" id="artwork">
+        <div class="placeholder">◈</div>
+      </div>
+      <div class="track-meta">
+        <div class="track-title" id="track-title">— SELECT A TRACK —</div>
+        <div class="track-artist" id="track-artist">ghost//wave player</div>
+        <div style="margin-top:6px;"><span class="tag tag-sc">SOUNDCLOUD</span></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div class="waveform-bar" id="progress-bar" onclick="seekTo(event)">
+        <div class="waveform-bars" id="wave-bars"></div>
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="time-row">
+        <span id="time-cur">0:00</span>
+        <span id="time-tot">0:00</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-icon" id="btn-shuffle" onclick="toggleShuffle()" title="Shuffle">⇌</button>
+      <button class="btn btn-icon" onclick="prevTrack()" title="Précédent">⏮</button>
+      <button class="btn-play" id="btn-play" onclick="togglePlay()">▶</button>
+      <button class="btn btn-icon" onclick="nextTrack()" title="Suivant">⏭</button>
+      <button class="btn btn-icon" id="btn-fav-cur" onclick="favCurrent()" title="Favori">♡</button>
+    </div>
+
+    <div class="volume-row">
+      <span class="vol-label">VOL</span>
+      <input type="range" min="0" max="100" value="80" id="volume-slider" oninput="setVolume(this.value)">
+      <span class="vol-val" id="vol-display">80%</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('all')" id="tab-all">◈ PLAYLIST</button>
+      <button class="tab" onclick="switchTab('fav')" id="tab-fav">♥ FAVORIS</button>
+    </div>
+    <div class="playlist-list" id="playlist-container"></div>
+  </div>
+
+  <div class="add-section">
+    <span class="add-label">▸ AJOUTER UN TRACK SOUNDCLOUD</span>
+    <div class="add-row">
+      <input class="add-input" type="url" id="sc-url-input" placeholder="https://soundcloud.com/artiste/titre">
+      <button class="btn-add" onclick="addTrack()">+ ADD</button>
+    </div>
+    <div style="margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;" id="add-status"></div>
+  </div>
+
+  <div style="text-align:center;padding:8px 0 16px;">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;">GHOST//WAVE v1.0 — SC PLAYER</span>
+  </div>
+
+</div>
+
+<script>
+let tracks = JSON.parse(localStorage.getItem('gw_tracks') || '[]');
+let favorites = new Set(JSON.parse(localStorage.getItem('gw_favs') || '[]'));
+let currentIndex = -1;
+let isPlaying = false;
+let shuffle = false;
+let currentTab = 'all';
+let widget = null;
+let duration = 0;
+
+function loadSCWidget() {
+  const s = document.createElement('script');
+  s.src = 'https://w.soundcloud.com/player/api.js';
+  document.head.appendChild(s);
+}
+
+function initWidget(url, autoplay) {
+  const iframe = document.getElementById('sc-widget');
+  iframe.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=${autoplay}&hide_related=true&show_comments=false&show_user=false&color=%2300f5ff`;
+  iframe.style.display = 'block';
+
+  const tryBind = () => {
+    if (window.SC && window.SC.Widget) {
+      widget = SC.Widget(iframe);
+      widget.bind(SC.Widget.Events.READY, () => {
+        widget.setVolume(parseInt(document.getElementById('volume-slider').value));
+        if (autoplay) widget.play();
+        widget.getDuration(d => { duration = d; updateTimeDisplay(0, d); });
+        widget.bind(SC.Widget.Events.PLAY, () => {
+          isPlaying = true; updatePlayBtn();
+          document.getElementById('now-playing-panel').classList.add('playing');
+        });
+        widget.bind(SC.Widget.Events.PAUSE, () => {
+          isPlaying = false; updatePlayBtn();
+          document.getElementById('now-playing-panel').classList.remove('playing');
+        });
+        widget.bind(SC.Widget.Events.FINISH, () => nextTrack());
+        widget.bind(SC.Widget.Events.PLAY_PROGRESS, data => {
+          if (duration > 0) {
+            document.getElementById('progress-fill').style.width = (data.currentPosition/duration*100)+'%';
+            updateTimeDisplay(data.currentPosition, duration);
+          }
+        });
+      });
+    } else { setTimeout(tryBind, 200); }
+  };
+  tryBind();
+}
+
+function playTrack(listIndex) {
+  const list = getActiveList();
+  if (listIndex < 0 || listIndex >= list.length) return;
+  currentIndex = tracks.indexOf(list[listIndex]);
+  const track = tracks[currentIndex];
+  initWidget(track.url, true);
+  document.getElementById('track-title').textContent = track.title || 'Unknown Track';
+  document.getElementById('track-artist').textContent = track.artist || '';
+  const artEl = document.getElementById('artwork');
+  artEl.innerHTML = track.art ? `<img src="${track.art}" alt="">` : '<div class="placeholder">◈</div>';
+  updateFavBtn(); renderPlaylist(); genWaveform();
+}
+
+function togglePlay() {
+  if (currentIndex === -1) { if (getActiveList().length) playTrack(0); return; }
+  if (!widget) return;
+  if (isPlaying) widget.pause(); else widget.play();
+}
+
+function nextTrack() {
+  const list = getActiveList();
+  if (!list.length) return;
+  const cur = list.findIndex(t => tracks.indexOf(t) === currentIndex);
+  playTrack(shuffle ? Math.floor(Math.random()*list.length) : (cur+1)%list.length);
+}
+
+function prevTrack() {
+  const list = getActiveList();
+  if (!list.length) return;
+  const cur = list.findIndex(t => tracks.indexOf(t) === currentIndex);
+  playTrack((cur-1+list.length)%list.length);
+}
+
+function getActiveList() {
+  return currentTab === 'fav' ? tracks.filter(t => favorites.has(t.id)) : tracks;
+}
+
+function seekTo(e) {
+  if (!widget || duration === 0) return;
+  const bar = document.getElementById('progress-bar');
+  const rect = bar.getBoundingClientRect();
+  widget.seekTo(((e.clientX-rect.left)/rect.width)*duration);
+}
+
+function setVolume(v) {
+  document.getElementById('vol-display').textContent = v+'%';
+  if (widget) widget.setVolume(parseInt(v));
+}
+
+function toggleShuffle() {
+  shuffle = !shuffle;
+  document.getElementById('btn-shuffle').classList.toggle('active', shuffle);
+}
+
+function favCurrent() {
+  if (currentIndex === -1) return;
+  const id = tracks[currentIndex].id;
+  favorites.has(id) ? favorites.delete(id) : favorites.add(id);
+  saveFavs(); updateFavBtn(); renderPlaylist();
+}
+
+function toggleFav(id) {
+  favorites.has(id) ? favorites.delete(id) : favorites.add(id);
+  saveFavs(); updateFavBtn(); renderPlaylist();
+}
+
+function updatePlayBtn() {
+  document.getElementById('btn-play').textContent = isPlaying ? '⏸' : '▶';
+}
+
+function updateFavBtn() {
+  if (currentIndex === -1) return;
+  const id = tracks[currentIndex].id;
+  const btn = document.getElementById('btn-fav-cur');
+  const on = favorites.has(id);
+  btn.textContent = on ? '♥' : '♡';
+  btn.style.color = on ? 'var(--pink)' : '';
+  btn.style.textShadow = on ? 'var(--glow-pink)' : '';
+}
+
+function updateTimeDisplay(cur, tot) {
+  document.getElementById('time-cur').textContent = fmt(cur);
+  document.getElementById('time-tot').textContent = fmt(tot);
+}
+
+function fmt(ms) {
+  const s = Math.floor(ms/1000);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function genWaveform() {
+  const c = document.getElementById('wave-bars');
+  c.innerHTML = '';
+  for (let i=0;i<60;i++) {
+    const b = document.createElement('div');
+    b.className = 'bar';
+    b.style.height = (20+Math.random()*60)+'%';
+    c.appendChild(b);
+  }
+}
+
+function renderPlaylist() {
+  const container = document.getElementById('playlist-container');
+  const list = getActiveList();
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-msg">${currentTab==='fav'?'♡ AUCUN FAVORI':'+ AJOUTEZ DES TRACKS'}</div>`;
+    return;
+  }
+  container.innerHTML = list.map((t,i) => {
+    const isActive = tracks.indexOf(t) === currentIndex;
+    const isFav = favorites.has(t.id);
+    return `<div class="track-item ${isActive?'active':''}" onclick="playTrack(${i})">
+      <span class="item-num">${isActive?'▶':i+1}</span>
+      <div class="item-art">${t.art?`<img src="${t.art}" alt="">`:'◈'}</div>
+      <div class="item-info">
+        <div class="item-title">${t.title||'Unknown'}</div>
+        <div class="item-artist">${t.artist||''}</div>
+      </div>
+      <button class="item-fav ${isFav?'on':''}" onclick="event.stopPropagation();toggleFav('${t.id}')">${isFav?'♥':'♡'}</button>
+    </div>`;
+  }).join('');
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-all').classList.toggle('active', tab==='all');
+  document.getElementById('tab-fav').classList.toggle('active', tab==='fav');
+  renderPlaylist();
+}
+
+async function addTrack() {
+  const input = document.getElementById('sc-url-input');
+  const status = document.getElementById('add-status');
+  const url = input.value.trim();
+  if (!url.includes('soundcloud.com')) {
+    status.textContent = '✗ URL SoundCloud invalide';
+    status.style.color = 'var(--pink)'; return;
+  }
+  status.textContent = '... FETCHING TRACK DATA';
+  status.style.color = 'var(--cyan)';
+  try {
+    const res = await fetch(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+    const track = { id:'sc_'+Date.now(), url, title:data.title||url, artist:data.author_name||'', art:data.thumbnail_url||null };
+    tracks.push(track); saveTracks();
+    input.value = '';
+    status.textContent = '✓ ADDED: '+track.title;
+    status.style.color = 'var(--cyan)';
+    renderPlaylist();
+    if (tracks.length===1) playTrack(0);
+  } catch(e) {
+    const track = { id:'sc_'+Date.now(), url, title:url.split('/').pop()||'Track', artist:url.split('/')[3]||'', art:null };
+    tracks.push(track); saveTracks();
+    input.value = '';
+    status.textContent = '✓ ADDED (no metadata)';
+    status.style.color = 'var(--yellow)';
+    renderPlaylist();
+  }
+}
+
+function saveTracks() { localStorage.setItem('gw_tracks', JSON.stringify(tracks)); }
+function saveFavs() { localStorage.setItem('gw_favs', JSON.stringify([...favorites])); }
+
+loadSCWidget();
+genWaveform();
+renderPlaylist();
+
+document.getElementById('sc-url-input').addEventListener('keydown', e => { if(e.key==='Enter') addTrack(); });
+</script>
 </body>
 </html>
