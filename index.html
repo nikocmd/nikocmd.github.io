@@ -3,803 +3,617 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GHOST//WAVE — Player</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<title>NasDatte — Générateur de Scripts</title>
 <style>
-  :root {
-    --bg: #050508;
-    --bg2: #0a0a12;
-    --panel: #0d0d18;
-    --border: #1a1a2e;
-    --cyan: #00f5ff;
-    --pink: #ff0080;
-    --purple: #7b00ff;
-    --yellow: #f5e642;
-    --text: #c8d8e8;
-    --text-dim: #4a5568;
-    --glow-cyan: 0 0 10px #00f5ff88, 0 0 30px #00f5ff33;
-    --glow-pink: 0 0 10px #ff008088, 0 0 30px #ff008033;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Rajdhani', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-  }
-
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,245,255,0.015) 2px,
-      rgba(0,245,255,0.015) 4px
-    );
-    pointer-events: none;
-    z-index: 1000;
-  }
-
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .app {
-    position: relative;
-    z-index: 1;
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 16px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    font-family: 'Orbitron', monospace;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 3px;
-    color: var(--cyan);
-    text-shadow: var(--glow-cyan);
-  }
-
-  .logo span { color: var(--pink); text-shadow: var(--glow-pink); }
-
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--cyan);
-    box-shadow: var(--glow-cyan);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-  .now-playing {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-top: 2px solid var(--cyan);
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .now-playing::before {
-    content: 'NOW PLAYING';
-    position: absolute;
-    top: 8px; right: 12px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 9px;
-    color: var(--cyan);
-    opacity: 0.5;
-    letter-spacing: 2px;
-  }
-
-  .now-playing::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    width: 100%; height: 2px;
-    background: linear-gradient(90deg, var(--purple), var(--cyan), var(--pink));
-    animation: scanline 3s linear infinite;
-  }
-
-  @keyframes scanline {
-    0%   { transform: scaleX(0); transform-origin: left; }
-    50%  { transform: scaleX(1); transform-origin: left; }
-    51%  { transform: scaleX(1); transform-origin: right; }
-    100% { transform: scaleX(0); transform-origin: right; }
-  }
-
-  .track-artwork {
-    width: 80px; height: 80px;
-    background: linear-gradient(135deg, var(--purple), var(--cyan));
-    border: 1px solid var(--cyan);
-    box-shadow: var(--glow-cyan);
-    flex-shrink: 0;
-    overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .track-artwork img { width:100%; height:100%; object-fit:cover; display:block; }
-  .track-artwork .placeholder { font-size:28px; opacity:.6; }
-
-  .track-info-row {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    margin-bottom: 16px;
-  }
-
-  .track-meta { flex:1; min-width:0; }
-
-  .track-title {
-    font-family: 'Orbitron', monospace;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 4px;
-  }
-
-  .track-artist {
-    font-size: 13px;
-    color: var(--cyan);
-    font-weight: 300;
-    letter-spacing: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .tag {
-    display: inline-block;
-    padding: 2px 6px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 1px;
-    border: 1px solid;
-    margin-top: 4px;
-  }
-
-  .tag-sc { color: #ff5500; border-color: #ff550066; }
-
-  .waveform-bar {
-    height: 40px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    position: relative;
-    cursor: pointer;
-    overflow: hidden;
-    margin-bottom: 6px;
-  }
-
-  .waveform-bars {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 100%;
-    padding: 4px 6px;
-    position: absolute;
-    inset: 0;
-  }
-
-  .waveform-bars .bar {
-    flex: 1;
-    background: var(--border);
-    border-radius: 1px;
-  }
-
-  .progress-fill {
-    position: absolute;
-    left:0; top:0; bottom:0;
-    background: linear-gradient(90deg, rgba(123,0,255,.3), rgba(0,245,255,.3));
-    border-right: 2px solid var(--cyan);
-    box-shadow: 2px 0 10px var(--cyan);
-    transition: width .5s linear;
-    pointer-events: none;
-  }
-
-  .time-row {
-    display: flex;
-    justify-content: space-between;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  .controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    cursor: pointer;
-    transition: all .15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-  }
-
-  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
-  .btn.active { border-color: var(--cyan); color: var(--cyan); box-shadow: var(--glow-cyan); }
-
-  .btn-icon { width:36px; height:36px; }
-
-  .btn-play {
-    width: 52px; height: 52px;
-    background: linear-gradient(135deg, var(--purple), var(--cyan));
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    box-shadow: var(--glow-cyan);
-    cursor: pointer;
-    transition: all .15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .btn-play:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px #00f5ffaa, 0 0 40px #00f5ff44;
-  }
-
-  #sc-widget { display:none; }
-
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    position: relative;
-  }
-
-  .corner-tl, .corner-br {
-    position: absolute;
-    width: 12px; height: 12px;
-    pointer-events: none;
-  }
-
-  .corner-tl { top:0; left:0; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); }
-  .corner-br { bottom:0; right:0; border-bottom:2px solid var(--pink); border-right:2px solid var(--pink); }
-
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .tab {
-    flex: 1;
-    padding: 8px;
-    text-align: center;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    cursor: pointer;
-    border: none;
-    background: none;
-    border-bottom: 2px solid transparent;
-    transition: all .15s;
-  }
-
-  .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
-
-  .playlist-list {
-    max-height: 280px;
-    overflow-y: auto;
-  }
-
-  .playlist-list::-webkit-scrollbar { width:3px; }
-  .playlist-list::-webkit-scrollbar-track { background: var(--bg2); }
-  .playlist-list::-webkit-scrollbar-thumb { background: var(--cyan); }
-
-  .track-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(26,26,46,.5);
-    transition: background .1s;
-  }
-
-  .track-item:hover { background: rgba(0,245,255,.04); }
-
-  .track-item.active {
-    background: rgba(0,245,255,.07);
-    border-left: 2px solid var(--cyan);
-  }
-
-  .track-item.active .item-title { color: var(--cyan); }
-
-  .item-num {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    width: 20px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
-  .track-item.active .item-num { color: var(--cyan); }
-
-  .item-art {
-    width: 36px; height: 36px;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, var(--purple), var(--cyan));
-    overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .item-art img { width:100%; height:100%; object-fit:cover; }
-
-  .item-info { flex:1; min-width:0; }
-
-  .item-title {
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--text);
-  }
-
-  .item-artist {
-    font-size: 11px;
-    color: var(--text-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .item-fav {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 4px;
-    transition: all .15s;
-    flex-shrink: 0;
-  }
-
-  .item-fav.on { color: var(--pink); text-shadow: var(--glow-pink); }
-  .item-fav:hover { color: var(--pink); }
-
-  .add-section {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    padding: 14px;
-  }
-
-  .add-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-    display: block;
-  }
-
-  .add-row { display:flex; gap:8px; }
-
-  .add-input {
-    flex: 1;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 10px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    outline: none;
-    transition: border-color .15s;
-  }
-
-  .add-input:focus { border-color: var(--cyan); }
-  .add-input::placeholder { color: var(--text-dim); }
-
-  .btn-add {
-    background: linear-gradient(135deg, var(--purple), var(--pink));
-    border: none;
-    color: #fff;
-    padding: 8px 14px;
-    font-family: 'Orbitron', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all .15s;
-  }
-
-  .btn-add:hover { opacity:.85; }
-
-  .volume-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .vol-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 9px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-    width: 24px;
-  }
-
-  input[type=range] {
-    flex: 1;
-    -webkit-appearance: none;
-    height: 2px;
-    background: var(--border);
-    outline: none;
-  }
-
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px; height: 12px;
-    background: var(--cyan);
-    box-shadow: var(--glow-cyan);
-    cursor: pointer;
-  }
-
-  .vol-val {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 9px;
-    color: var(--cyan);
-    width: 28px;
-    text-align: right;
-  }
-
-  @keyframes glitch {
-    0%,95%,100% { transform:none; text-shadow:none; }
-    96% { transform:skew(-1deg); text-shadow:2px 0 var(--pink),-2px 0 var(--cyan); }
-    98% { transform:skew(1deg); text-shadow:-2px 0 var(--pink),2px 0 var(--cyan); }
-  }
-
-  .playing .track-title { animation: glitch 5s infinite; }
-
-  .empty-msg {
-    padding: 24px;
-    text-align: center;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #111;
+  --surface2: #181818;
+  --border: #242424;
+  --accent: #f5a623;
+  --accent2: #e84d3d;
+  --text: #f0ede8;
+  --muted: #444;
+  --muted2: #777;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+
+header{border-bottom:1px solid var(--border);padding:1.2rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(10,10,10,0.96);backdrop-filter:blur(12px);z-index:100}
+.logo{font-family:'Bebas Neue',cursive;font-size:2rem;letter-spacing:.08em;color:var(--accent)}
+.logo span{color:var(--text)}
+.htag{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted2);letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--border);padding:4px 10px;border-radius:3px}
+
+.hero{padding:3.5rem 2rem 1.5rem;max-width:960px;margin:0 auto}
+.hero h1{font-family:'Bebas Neue',cursive;font-size:clamp(2.8rem,8vw,5.5rem);line-height:.95;letter-spacing:.02em;margin-bottom:.8rem}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{font-size:.85rem;color:var(--muted2);max-width:480px;line-height:1.65;font-family:'Space Mono',monospace}
+
+.main{max-width:960px;margin:0 auto;padding:0 2rem 4rem;display:grid;grid-template-columns:290px 1fr;gap:1.25rem;align-items:start}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:1rem}
+.ph{padding:.85rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ptitle{font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted2)}
+.plink{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--accent);cursor:pointer;letter-spacing:.08em}
+.pb{padding:1.1rem}
+
+label{display:block;font-size:.68rem;font-family:'Space Mono',monospace;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;margin-top:12px}
+label:first-child{margin-top:0}
+
+select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-family:'Inter',sans-serif;font-size:.82rem;padding:7px 9px;appearance:none;cursor:pointer;transition:border-color .2s}
+select:hover,select:focus{border-color:var(--accent);outline:none}
+
+input[type=range]{width:100%;accent-color:var(--accent);padding:3px 0}
+.rrow{display:flex;align-items:center;gap:8px}
+.rval{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--accent);min-width:16px;text-align:right}
+
+.cbgrid{display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto;padding-right:2px}
+.cbgrid::-webkit-scrollbar{width:3px}
+.cbgrid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.cbi{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 8px;border-radius:5px;border:1px solid transparent;transition:all .15s;font-size:.8rem}
+.cbi:hover{background:var(--surface2);border-color:var(--border)}
+.cbi.sel{background:rgba(245,166,35,.07);border-color:rgba(245,166,35,.25)}
+.cbi input{display:none}
+.dot{width:13px;height:13px;border:1.5px solid var(--muted);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cbi.sel .dot{background:var(--accent);border-color:var(--accent)}
+.dot::after{content:'✓';font-size:8px;color:#000;display:none}
+.cbi.sel .dot::after{display:block}
+.cbn{font-weight:500;color:var(--text);font-size:.8rem}
+.cbs{font-size:.68rem;color:var(--muted2);margin-top:1px}
+
+.btn-gen{width:100%;padding:13px;background:var(--accent);color:#000;font-family:'Bebas Neue',cursive;font-size:1.25rem;letter-spacing:.12em;border:none;border-radius:6px;cursor:pointer;transition:all .2s;margin-top:.25rem}
+.btn-gen:hover{background:#ffc04d;transform:translateY(-1px)}
+.btn-gen:active{transform:scale(.98)}
+.btn-gen.loading{pointer-events:none;background:#222;color:var(--muted2)}
+
+.out{display:flex;flex-direction:column;gap:1rem}
+
+.scene-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;animation:fs .3s ease both}
+@keyframes fs{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.sch{padding:.7rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface2)}
+.snum{font-family:'Bebas Neue',cursive;font-size:1.05rem;color:var(--accent);letter-spacing:.05em;min-width:26px}
+.sloc{font-size:.7rem;color:var(--muted2);font-family:'Space Mono',monospace}
+.stens{margin-left:auto;font-size:.65rem;background:rgba(232,77,61,.1);color:#e84d3d;border:1px solid rgba(232,77,61,.2);padding:2px 8px;border-radius:20px;font-family:'Space Mono',monospace}
+
+.scb{padding:1.1rem;display:flex;flex-direction:column;gap:.9rem}
+
+.snap-block{background:rgba(245,166,35,.05);border-left:3px solid var(--accent);padding:9px 13px;border-radius:0 6px 6px 0;font-size:.83rem;line-height:1.65;color:#d4b896;font-style:italic}
+.snap-lbl{font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+
+.blk{display:flex;flex-direction:column;gap:5px}
+.blbl{font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.blbl::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.ptxt{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:9px 11px;font-size:.75rem;line-height:1.75;color:#ccc;font-family:'Space Mono',monospace;white-space:pre-wrap;word-break:break-word}
+.ctx{font-size:.83rem;line-height:1.65;color:var(--muted2)}
+
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.tag{font-size:.65rem;padding:2px 7px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted2);font-family:'Space Mono',monospace}
+
+.empty{background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:3.5rem 2rem;text-align:center;color:var(--muted)}
+.empty-icon{font-size:2.5rem;display:block;margin-bottom:.8rem;filter:grayscale(1)}
+.empty p{font-family:'Space Mono',monospace;font-size:.75rem;line-height:1.7}
+
+.toprow{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+.outtitle{font-family:'Bebas Neue',cursive;font-size:1.4rem;letter-spacing:.05em;color:var(--accent)}
+.copybtn{font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--muted2);border:1px solid var(--border);padding:5px 11px;border-radius:4px;cursor:pointer;transition:all .2s}
+.copybtn:hover{color:var(--accent);border-color:var(--accent)}
+.copybtn.ok{color:#4caf50;border-color:#4caf50}
+
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip{font-size:.68rem;padding:2px 8px;border-radius:20px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2);color:var(--accent);font-family:'Space Mono',monospace}
+
+.story-header{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.1rem 1.25rem}
+
+@media(max-width:700px){.main{grid-template-columns:1fr}.hero{padding:2rem 1rem 1rem}.main{padding:0 1rem 3rem}}
 </style>
 </head>
 <body>
 
-<div class="app">
+<header>
+  <div class="logo">Nas<span>Datte</span></div>
+  <div class="htag">Script Generator v1.0</div>
+</header>
 
-  <div class="header">
-    <div class="logo">GHOST<span>//</span>WAVE</div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;">SYS::ONLINE</span>
-      <div class="status-dot"></div>
+<div class="hero">
+  <h1>Génère tes<br><em>scripts</em><br>quartier</h1>
+  <p>// Fruits & légumes façon Snap NasDatte<br>Format Pixar 3D cartoon — TikTok / Reels / Shorts</p>
+</div>
+
+<div class="main">
+
+  <div>
+    <div class="panel">
+      <div class="ph"><span class="ptitle">Histoire</span></div>
+      <div class="pb">
+
+        <label>Thème</label>
+        <select id="theme">
+          <option value="random">🎲 Aléatoire</option>
+          <optgroup label="Relations & Kiff">
+            <option value="kiff_interdit">Kiff interdit dans la team</option>
+            <option value="jalousie_couple">Jalousie dans le couple</option>
+            <option value="triangle">Triangle amoureux</option>
+            <option value="retour_ex">Retour d'un ex</option>
+            <option value="secret_live">Secret révélé en live Snap</option>
+          </optgroup>
+          <optgroup label="Trahison & Loyauté">
+            <option value="mauvais_dest">Message au mauvais destinataire</option>
+            <option value="screenshot">Screenshot qui fuite</option>
+            <option value="faux_loyal">Faux loyal grillé</option>
+            <option value="dos">Quelqu'un parle dans le dos</option>
+            <option value="thune">Quelqu'un prend plus que sa part</option>
+          </optgroup>
+          <optgroup label="Argent & Fame">
+            <option value="change_thune">Il a changé depuis qu'il gagne</option>
+            <option value="business">Business qui foire entre amis</option>
+            <option value="ancien_ami">L'ancien ami qui revient quand ça va</option>
+            <option value="jalousie_fame">Jalousie depuis que NasDatte est connu</option>
+          </optgroup>
+          <optgroup label="Famille & Quartier">
+            <option value="mere">La mère qui débarque</option>
+            <option value="banni">Retour du banni dans la team</option>
+            <option value="confrontation">Confrontation de quartier</option>
+            <option value="voisin">Voisin qui fait des histoires</option>
+          </optgroup>
+          <optgroup label="Drama Snap">
+            <option value="live_mal">Live qui tourne mal</option>
+            <option value="film_secret">Quelqu'un filme en secret</option>
+            <option value="rumeur">Rumeur qui part en vrille</option>
+          </optgroup>
+        </select>
+
+        <label>Lieu principal</label>
+        <select id="lieu">
+          <option value="random">🎲 Aléatoire</option>
+          <option value="appart">Appart HLM — salon</option>
+          <option value="hall">Hall d'immeuble</option>
+          <option value="rue">Rue du quartier</option>
+          <option value="balcon">Balcon la nuit</option>
+          <option value="cuisine">Cuisine de l'appart</option>
+          <option value="voiture">Dans la voiture</option>
+          <option value="parc">Parc du quartier</option>
+          <option value="kebab">Devant le kebab</option>
+          <option value="chambre">Chambre</option>
+        </select>
+
+        <label>Ton</label>
+        <select id="ton">
+          <option value="random">🎲 Aléatoire</option>
+          <option value="drama">Drama pur — tendu et émotionnel</option>
+          <option value="humour">Dark humour — drôle mais cash</option>
+          <option value="trash">Trash — sans filtre</option>
+          <option value="melan">Mélancolique — beau et triste</option>
+          <option value="chaud">Chaud — confrontation directe</option>
+        </select>
+
+        <label>Scènes — <span id="nbval">6</span></label>
+        <div class="rrow">
+          <input type="range" id="nbscenes" min="4" max="12" value="6"
+            oninput="document.getElementById('nbval').textContent=this.value">
+          <span class="rval" id="nbval2"></span>
+        </div>
+
+      </div>
     </div>
+
+    <div class="panel">
+      <div class="ph">
+        <span class="ptitle">Casting</span>
+        <span class="plink" onclick="toggleAll(true)">tout</span>
+      </div>
+      <div class="pb">
+        <div class="cbgrid" id="perso-list"></div>
+      </div>
+    </div>
+
+    <button class="btn-gen" id="btngen" onclick="generateScript()">⚡ GÉNÉRER LE SCRIPT</button>
   </div>
 
-  <iframe id="sc-widget" src="" allow="autoplay"></iframe>
-
-  <div class="now-playing" id="now-playing-panel">
-    <div class="corner-tl"></div>
-    <div class="corner-br"></div>
-
-    <div class="track-info-row">
-      <div class="track-artwork" id="artwork">
-        <div class="placeholder">◈</div>
-      </div>
-      <div class="track-meta">
-        <div class="track-title" id="track-title">— SELECT A TRACK —</div>
-        <div class="track-artist" id="track-artist">ghost//wave player</div>
-        <div style="margin-top:6px;"><span class="tag tag-sc">SOUNDCLOUD</span></div>
-      </div>
+  <div class="out" id="output">
+    <div class="empty">
+      <span class="empty-icon">🍑</span>
+      <p>Configure ton histoire<br>et clique sur Générer<br><br>// chaque script est unique</p>
     </div>
-
-    <div style="margin-bottom:16px;">
-      <div class="waveform-bar" id="progress-bar" onclick="seekTo(event)">
-        <div class="waveform-bars" id="wave-bars"></div>
-        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
-      </div>
-      <div class="time-row">
-        <span id="time-cur">0:00</span>
-        <span id="time-tot">0:00</span>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button class="btn btn-icon" id="btn-shuffle" onclick="toggleShuffle()" title="Shuffle">⇌</button>
-      <button class="btn btn-icon" onclick="prevTrack()" title="Précédent">⏮</button>
-      <button class="btn-play" id="btn-play" onclick="togglePlay()">▶</button>
-      <button class="btn btn-icon" onclick="nextTrack()" title="Suivant">⏭</button>
-      <button class="btn btn-icon" id="btn-fav-cur" onclick="favCurrent()" title="Favori">♡</button>
-    </div>
-
-    <div class="volume-row">
-      <span class="vol-label">VOL</span>
-      <input type="range" min="0" max="100" value="80" id="volume-slider" oninput="setVolume(this.value)">
-      <span class="vol-val" id="vol-display">80%</span>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="corner-tl"></div>
-    <div class="corner-br"></div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('all')" id="tab-all">◈ PLAYLIST</button>
-      <button class="tab" onclick="switchTab('fav')" id="tab-fav">♥ FAVORIS</button>
-    </div>
-    <div class="playlist-list" id="playlist-container"></div>
-  </div>
-
-  <div class="add-section">
-    <span class="add-label">▸ AJOUTER UN TRACK SOUNDCLOUD</span>
-    <div class="add-row">
-      <input class="add-input" type="url" id="sc-url-input" placeholder="https://soundcloud.com/artiste/titre">
-      <button class="btn-add" onclick="addTrack()">+ ADD</button>
-    </div>
-    <div style="margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;" id="add-status"></div>
-  </div>
-
-  <div style="text-align:center;padding:8px 0 16px;">
-    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;">GHOST//WAVE v1.0 — SC PLAYER</span>
   </div>
 
 </div>
 
 <script>
-let tracks = JSON.parse(localStorage.getItem('gw_tracks') || '[]');
-let favorites = new Set(JSON.parse(localStorage.getItem('gw_favs') || '[]'));
-let currentIndex = -1;
-let isPlaying = false;
-let shuffle = false;
-let currentTab = 'all';
-let widget = null;
-let duration = 0;
-
-function loadSCWidget() {
-  const s = document.createElement('script');
-  s.src = 'https://w.soundcloud.com/player/api.js';
-  document.head.appendChild(s);
-}
-
-function initWidget(url, autoplay) {
-  const iframe = document.getElementById('sc-widget');
-  iframe.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=${autoplay}&hide_related=true&show_comments=false&show_user=false&color=%2300f5ff`;
-  iframe.style.display = 'block';
-
-  const tryBind = () => {
-    if (window.SC && window.SC.Widget) {
-      widget = SC.Widget(iframe);
-      widget.bind(SC.Widget.Events.READY, () => {
-        widget.setVolume(parseInt(document.getElementById('volume-slider').value));
-        if (autoplay) widget.play();
-        widget.getDuration(d => { duration = d; updateTimeDisplay(0, d); });
-        widget.bind(SC.Widget.Events.PLAY, () => {
-          isPlaying = true; updatePlayBtn();
-          document.getElementById('now-playing-panel').classList.add('playing');
-        });
-        widget.bind(SC.Widget.Events.PAUSE, () => {
-          isPlaying = false; updatePlayBtn();
-          document.getElementById('now-playing-panel').classList.remove('playing');
-        });
-        widget.bind(SC.Widget.Events.FINISH, () => nextTrack());
-        widget.bind(SC.Widget.Events.PLAY_PROGRESS, data => {
-          if (duration > 0) {
-            document.getElementById('progress-fill').style.width = (data.currentPosition/duration*100)+'%';
-            updateTimeDisplay(data.currentPosition, duration);
-          }
-        });
-      });
-    } else { setTimeout(tryBind, 200); }
-  };
-  tryBind();
-}
-
-function playTrack(listIndex) {
-  const list = getActiveList();
-  if (listIndex < 0 || listIndex >= list.length) return;
-  currentIndex = tracks.indexOf(list[listIndex]);
-  const track = tracks[currentIndex];
-  initWidget(track.url, true);
-  document.getElementById('track-title').textContent = track.title || 'Unknown Track';
-  document.getElementById('track-artist').textContent = track.artist || '';
-  const artEl = document.getElementById('artwork');
-  artEl.innerHTML = track.art ? `<img src="${track.art}" alt="">` : '<div class="placeholder">◈</div>';
-  updateFavBtn(); renderPlaylist(); genWaveform();
-}
-
-function togglePlay() {
-  if (currentIndex === -1) { if (getActiveList().length) playTrack(0); return; }
-  if (!widget) return;
-  if (isPlaying) widget.pause(); else widget.play();
-}
-
-function nextTrack() {
-  const list = getActiveList();
-  if (!list.length) return;
-  const cur = list.findIndex(t => tracks.indexOf(t) === currentIndex);
-  playTrack(shuffle ? Math.floor(Math.random()*list.length) : (cur+1)%list.length);
-}
-
-function prevTrack() {
-  const list = getActiveList();
-  if (!list.length) return;
-  const cur = list.findIndex(t => tracks.indexOf(t) === currentIndex);
-  playTrack((cur-1+list.length)%list.length);
-}
-
-function getActiveList() {
-  return currentTab === 'fav' ? tracks.filter(t => favorites.has(t.id)) : tracks;
-}
-
-function seekTo(e) {
-  if (!widget || duration === 0) return;
-  const bar = document.getElementById('progress-bar');
-  const rect = bar.getBoundingClientRect();
-  widget.seekTo(((e.clientX-rect.left)/rect.width)*duration);
-}
-
-function setVolume(v) {
-  document.getElementById('vol-display').textContent = v+'%';
-  if (widget) widget.setVolume(parseInt(v));
-}
-
-function toggleShuffle() {
-  shuffle = !shuffle;
-  document.getElementById('btn-shuffle').classList.toggle('active', shuffle);
-}
-
-function favCurrent() {
-  if (currentIndex === -1) return;
-  const id = tracks[currentIndex].id;
-  favorites.has(id) ? favorites.delete(id) : favorites.add(id);
-  saveFavs(); updateFavBtn(); renderPlaylist();
-}
-
-function toggleFav(id) {
-  favorites.has(id) ? favorites.delete(id) : favorites.add(id);
-  saveFavs(); updateFavBtn(); renderPlaylist();
-}
-
-function updatePlayBtn() {
-  document.getElementById('btn-play').textContent = isPlaying ? '⏸' : '▶';
-}
-
-function updateFavBtn() {
-  if (currentIndex === -1) return;
-  const id = tracks[currentIndex].id;
-  const btn = document.getElementById('btn-fav-cur');
-  const on = favorites.has(id);
-  btn.textContent = on ? '♥' : '♡';
-  btn.style.color = on ? 'var(--pink)' : '';
-  btn.style.textShadow = on ? 'var(--glow-pink)' : '';
-}
-
-function updateTimeDisplay(cur, tot) {
-  document.getElementById('time-cur').textContent = fmt(cur);
-  document.getElementById('time-tot').textContent = fmt(tot);
-}
-
-function fmt(ms) {
-  const s = Math.floor(ms/1000);
-  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-}
-
-function genWaveform() {
-  const c = document.getElementById('wave-bars');
-  c.innerHTML = '';
-  for (let i=0;i<60;i++) {
-    const b = document.createElement('div');
-    b.className = 'bar';
-    b.style.height = (20+Math.random()*60)+'%';
-    c.appendChild(b);
+const PERSOS = [
+  {
+    id:'nasdatte', nom:'NasDatte', emoji:'🟤', fruit:'datte dorée', ref:'Nasdas', always:true,
+    desc:'small compact round golden-brown wrinkled date fruit body, big expressive mischievous dark eyes, round face with a wide grin, wearing a dark tracksuit, white sneakers, white cap worn backwards, always holding his phone up to film',
+    perso:'Narrateur Snap. Il filme tout, commente en live. Voix du quartier. Mi-juge mi-complice.'
+  },
+  {
+    id:'samosa', nom:'Samosa', emoji:'🥟', fruit:'samosa doré et croustillant', ref:'Samos',
+    desc:'very short and extremely wide stocky triangular body shaped like a golden-brown crispy samosa, rough textured golden surface with visible crimped edges, thick neck, short powerful arms, black Lacoste polo shirt, black jogger pants, white sneakers, arms crossed by default',
+    perso:'Parle peu. Quand il parle, c\'est terminé. Personne le contredit. Il voit tout.'
+  },
+  {
+    id:'vocado', nom:'4Vocado', emoji:'🥑', fruit:'avocat', ref:'4BDV',
+    desc:'medium build anthropomorphic avocado, dark green rough textured exterior skin, light creamy green interior visible at the top, large round expressive eyes, black hoodie, grey jogger pants, white Air Max sneakers',
+    perso:'Curieux, bavard, impulsif. Déclenche les dramas sans le vouloir. Toujours là au mauvais moment.'
+  },
+  {
+    id:'citounsi', nom:'Citounsi', emoji:'🍋', fruit:'citron vert', ref:'Tounsi',
+    desc:'tall slim anthropomorphic lime, bright green textured citrus skin, angular jawline, short dark fade haircut, sharp dark eyes, grey oversized hoodie, black jogger pants, white Air Max sneakers',
+    perso:'Intense, conflicté. Fait des mauvais choix mais il le sait. Loyal mais coincé entre deux feux.'
+  },
+  {
+    id:'billybanane', nom:'BillyBanane', emoji:'🍌', fruit:'banane', ref:'BillyDZ',
+    desc:'tall curved anthropomorphic banana silhouette, smooth bright yellow skin, natural relaxed smile, white t-shirt, beige cargo pants, Jordans sneakers, relaxed laid-back posture',
+    perso:'Cool, observateur, discret. Réagit avec humour pour désamorcer. Comprend vite mais dit peu.'
+  },
+  {
+    id:'cappucoco', nom:'Cappucoco', emoji:'🥥', fruit:'noix de coco', ref:'Cappuccino',
+    desc:'round anthropomorphic coconut, dark brown rough exterior shell, off-white interior visible at top, brown durag on head, black bomber jacket, white jogger pants, Timberland boots, usually holding a microphone or small notebook',
+    perso:'Créatif, théâtral, dans sa bulle. Transforme tout en punchline. Le rappeur de la team.'
+  },
+  {
+    id:'krimorange', nom:'Krimorange', emoji:'🍊', fruit:'orange', ref:'Krimo',
+    desc:'medium build anthropomorphic orange, vivid orange textured citrus skin, bright alert eyes, orange puffer jacket, grey jogger pants, Nike TN sneakers',
+    perso:'Enthousiaste, parfois maladroit. Loyal mais encore en train de trouver sa place dans la team.'
+  },
+  {
+    id:'mangoriana', nom:'Mangoriana', emoji:'🥭', fruit:'mangue mûre', ref:'Loriana',
+    desc:'curvy feminine anthropomorphic ripe mango, smooth golden-orange skin with green blush at top, large dark almond-shaped eyes, full lips, white crop top, black high-waisted jogger pants, small gold hoop earrings, white Nike Air Forces, long black braids',
+    perso:'Forte, directe, loyale. Dit ce qu\'elle pense. Supporte pas les faux semblants.'
+  },
+  {
+    id:'mansourika', nom:'Mansourika', emoji:'🍲', fruit:'moussaka', ref:'Mansour',
+    desc:'tall and wide anthropomorphic moussaka character, golden-brown crispy top layer with visible layered interior when seen from the side, warm and sturdy build, burgundy tracksuit top, beige hoodie, worn-out sneakers',
+    perso:'Chaleureux, généreux, toujours à ramener à manger. Calme mais peut exploser si on touche à la team.'
+  },
+  {
+    id:'loreintje', nom:'Loreintje', emoji:'🍆', fruit:'aubergine', ref:'Loriana',
+    desc:'slender feminine anthropomorphic aubergine, smooth glossy deep purple skin, natural green stem cap worn like a hair accessory, matching purple coordinated outfit, chunky boots',
+    perso:'Drama queen mais attachante. Exagère tout mais a souvent raison. Mémoire d\'éléphant pour les trahisons.'
+  },
+  {
+    id:'mouncitron', nom:'Mouncitron', emoji:'🍋', fruit:'citron jaune', ref:'Mouna',
+    desc:'medium build feminine anthropomorphic lemon, smooth bright yellow citrus skin, naturally sarcastic resting expression, casual yellow and white outfit, Air Forces',
+    perso:'Dit toujours ce que tout le monde pense tout bas. Acide mais honnête. Personne peut la contredire longtemps.'
+  },
+  {
+    id:'assiagon', nom:'Assiagon', emoji:'🧅', fruit:'oignon', ref:'Assia',
+    desc:'round and soft feminine anthropomorphic onion, golden-brown layered skin with visible concentric rings, bright glistening eyes that look like they are always on the verge of tears, simple clean outfit, thin scarf',
+    perso:'La plus loyale de la team. Fait pleurer tout le monde quand elle parle — parce qu\'elle dit la vérité pure.'
+  },
+  {
+    id:'farigoule', nom:'Farigoule', emoji:'🌿', fruit:'thym', ref:'Farah',
+    desc:'very small and slender anthropomorphic thyme herb character, grey-green delicate skin with tiny leaf-like textures, minimalist green outfit, quiet discreet sneakers, always slightly in the background',
+    perso:'Observe tout mais dit rien pendant longtemps. Quand elle parle enfin, tout le monde est choqué par ce qu\'elle a vu.'
+  },
+  {
+    id:'sayavocate', nom:'Sayavocate', emoji:'🥑', fruit:'avocat (féminin)', ref:'Saya',
+    desc:'feminine anthropomorphic avocado, dark green textured exterior skin with creamy interior visible, natural afro-textured hair pulled back, relaxed chic green and cream outfit',
+    perso:'Défend tout le monde dans la team. Toujours à prendre la défense de quelqu\'un. Parfois elle défend des gens qui méritent pas.'
+  },
+  {
+    id:'nassimangue', nom:'Nassimangue', emoji:'🥭', fruit:'mangue verte pas mûre', ref:'Nassim',
+    desc:'smaller and more angular anthropomorphic unripe green-yellow mango, green-yellow skin not yet orange, slightly smaller build than a ripe mango, school backpack, fresh new sneakers, student casual outfit',
+    perso:'Le plus jeune de la team. Encore vert, naïf, veut trop bien faire. Apprend les codes à la dure.'
   }
+];
+
+const THEMES_DATA = {
+  kiff_interdit:{label:'Kiff interdit',tags:['❤️ kiff secret','💀 trahison','👁️ quelqu\'un voit']},
+  jalousie_couple:{label:'Jalousie couple',tags:['😤 jalousie','📱 téléphone','🔥 confrontation']},
+  triangle:{label:'Triangle amoureux',tags:['💔 triangle','😶 chacun sait','🎭 faux-semblants']},
+  retour_ex:{label:'Retour d\'un ex',tags:['🔄 retour','😬 awkward','💥 explosion']},
+  secret_live:{label:'Secret en live',tags:['🔴 live Snap','😱 révélation','📲 tout le monde voit']},
+  mauvais_dest:{label:'Message mal envoyé',tags:['📲 message','😱 mauvais contact','💀 fin']},
+  screenshot:{label:'Screenshot qui fuite',tags:['📸 screenshot','🔥 ça part','😭 trahison']},
+  faux_loyal:{label:'Faux loyal grillé',tags:['🐍 backstab','👁️ grillé','⚖️ confrontation']},
+  dos:{label:'Parle dans le dos',tags:['🗣️ rumeur','😤 confrontation','💔 amitié brisée']},
+  thune:{label:'Vole la thune',tags:['💰 argent','😡 trahison','⚖️ comptes']},
+  change_thune:{label:'Changé avec l\'argent',tags:['💰 fame','😤 oublie ses racines','🤝 rappel']},
+  business:{label:'Business qui foire',tags:['💸 argent perdu','😡 responsabilités','⚖️ qui a fauté']},
+  ancien_ami:{label:'Retour opportuniste',tags:['🐍 hypocrite','😒 trop transparent','👊 confrontation']},
+  jalousie_fame:{label:'Jalousie sur la fame',tags:['😤 jaloux','📱 Snap','💀 ça sort']},
+  mere:{label:'La mère débarque',tags:['👩 famille','😱 surprise','😂 tout le monde se cache']},
+  banni:{label:'Retour du banni',tags:['🔄 retour','😤 team divisée','⚖️ vote']},
+  confrontation:{label:'Confrontation quartier',tags:['😤 territoire','👊 tension','🔴 live']},
+  voisin:{label:'Voisin drama',tags:['😤 voisin','💀 ça dégénère','👁️ tout le monde regarde']},
+  live_mal:{label:'Live qui tourne mal',tags:['🔴 live','😱 révélation en direct','📲 abonnés choqués']},
+  film_secret:{label:'Filmé en secret',tags:['📸 caméra cachée','😤 violation','💥 confrontation']},
+  rumeur:{label:'Rumeur',tags:['🗣️ rumeur','😭 réputation','⚖️ vérité vs mensonge']},
+};
+
+const LIEUX_PROMPTS = {
+  appart:'Small cluttered French banlieue HLM apartment living room. Worn grey sofa, low glass coffee table with phones and snacks, flat screen TV on mute, warm yellowish lamp light, half-closed window shutters letting in orange evening light, dirty laminate floor',
+  hall:'Narrow HLM apartment corridor at night. Dirty beige linoleum floor, scuffed yellow walls, flickering fluorescent ceiling light, old silver elevator door in background, shadow-filled corners, coat hooks on the wall',
+  rue:'French banlieue street at night. Cracked concrete pavement, orange sodium streetlights, parked cars along the curb, low-rise housing blocks with lit windows, graffiti tags on a wall, distant sounds of the city',
+  balcon:'Small apartment balcony at night. Rusty metal railing, cracked concrete floor, dead plants in a pot. City lights of a French suburban town spread below — orange streetlights, distant tower blocks. Dark navy blue night sky',
+  cuisine:'Small cramped apartment kitchen at night. White tiled walls with stains, old grey linoleum, cold strip light overhead, cluttered counter with dishes, half-open fridge emitting soft yellow-white light',
+  voiture:'Interior of a parked car at night. Worn fabric seats, dashboard faintly lit, phone screen glow illuminating faces from below, rain-blurred windows outside, claustrophobic huis clos',
+  parc:'Neighbourhood park at night. Concrete benches, chain-link fence around a football pitch in background, sodium streetlights casting orange pools of light, groups of young people in the distance',
+  kebab:'Outside a neighbourhood kebab shop at night. Red and white neon signs, a few plastic chairs on the pavement, condensation on the window, street behind',
+  chambre:'Small bedroom at night. Single bed with dark duvet, small bedside lamp with warm orange glow, posters on the wall, dark laminate floor, charger cable on the bedside table, clothes on the floor',
+};
+
+const TONS_DATA = {
+  drama:{label:'Drama pur',style:'Scènes chargées émotionnellement. Silences lourds. Répliques courtes qui tranchent.'},
+  humour:{label:'Dark humour',style:'Situations graves traitées avec humour cashé et involontaire.'},
+  trash:{label:'Trash',style:'Sans filtre. Les persos disent exactement ce qu\'ils pensent.'},
+  melan:{label:'Mélancolique',style:'Beau et triste à la fois. La chienneté dans ce qu\'elle a de plus humain.'},
+  chaud:{label:'Chaud',style:'Confrontation directe, montée en tension depuis la scène 1.'},
+};
+
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+function getRandom(obj){
+  const keys=Object.keys(obj);
+  return keys[Math.floor(Math.random()*keys.length)];
 }
 
-function renderPlaylist() {
-  const container = document.getElementById('playlist-container');
-  const list = getActiveList();
-  if (!list.length) {
-    container.innerHTML = `<div class="empty-msg">${currentTab==='fav'?'♡ AUCUN FAVORI':'+ AJOUTEZ DES TRACKS'}</div>`;
-    return;
+function getVal(id){
+  const el=document.getElementById(id);
+  return el.value==='random'?null:el.value;
+}
+
+function getPersos(){
+  return PERSOS.filter(p=>{
+    if(p.always)return true;
+    const cb=document.getElementById('cb_'+p.id);
+    return cb&&cb.checked;
+  });
+}
+
+const SNAP_VOIX=[
+  (p1,p2)=>`Frr on est en live... ${p1} il sait même pas ce qui l'attend... 30 000 personnes là... chut chut regardez 🔴👁️`,
+  (p1,p2)=>`Wallah les gars je filmais juste pour rigoler... et là je vois ÇA... mon cœur il tient plus frr... POV t'es moi là 😭💀`,
+  (p1,p2)=>`${p2} il parle pas beaucoup... mais quand il cause... wallah on dirait un juge... silence dans la salle 🔇⚖️`,
+  (p1,p2)=>`Le pire c'est que tout le monde voit... tout le monde sait... sauf lui... ratio la loyauté frr 💀 #chienneté`,
+  (p1,p2)=>`Je coupe le live... y'a des moments c'est plus pour les abonnés... c'est pour personne... bonne nuit le quartier 🌙`,
+  (p1,p2)=>`Les gars je vous jure sur la vie de ma mère c'est réel... abonnez-vous c'est gratuit 😭🔴`,
+  (p1,p2)=>`NasDatte il est là... il voit tout... il dit rien pour l'instant... mais il oublie rien frr 👁️`,
+  (p1,p2)=>`Wallah c'est chaud ce soir... la chienneté elle est en direct... restez connectés c'est maintenant que ça part 🔥📲`,
+  (p1,p2)=>`Frr ${p1} là... il est trop dans son monde... il voit pas ce que moi je vois... dommage 😶`,
+  (p1,p2)=>`C'est beau et c'est moche en même temps... c'est ça la vraie vie mes reuf... 🌃`,
+  (p1,p2)=>`No cap les gars le POV c'est insupportable... ${p1} il sait même pas... 💀`,
+  (p1,p2)=>`Abonnez-vous c'est gratuit la chienneté elle est en direct ce soir 😭🔴 on est ${Math.floor(Math.random()*40+10)}K là`,
+  (p1,p2)=>`Frr j'aurais dû rester chez moi ce soir... mais non... maintenant je vois ÇA... 😭`,
+  (p1,p2)=>`${p2} là en ce moment... wallah il porte le quartier sur les épaules sans le savoir 🙏`,
+  (p1,p2)=>`Je dis rien... je filme juste... laissez la chienneté se faire 👁️🤫`,
+];
+
+const CONTEXTES_PAR_PROG=[
+  // 0-20% intro
+  [
+    (p,lieu,theme)=>`Début — ${lieu}. ${p[0]?.nom||'Perso1'} et ${p[1]?.nom||'Perso2'} se retrouvent par hasard. Rien de visible encore mais quelque chose cloche. NasDatte filme depuis un coin, abonnés en live.`,
+    (p,lieu,theme)=>`Ouverture — ${lieu}. Ambiance normale en apparence. ${p[0]?.nom||'Perso1'} arrive, salue tout le monde normalement. Mais ${p[1]?.nom||'Perso2'} lui rend son regard une seconde de trop. NasDatte capte.`,
+    (p,lieu,theme)=>`Scène d'introduction — ${lieu}. Toute la team est réunie. ${p[0]?.nom||'Perso1'} est là depuis le début. ${p[1]?.nom||'Perso2'} arrive et l'atmosphère change imperceptiblement. Seul NasDatte le sent.`,
+  ],
+  // 20-50% développement
+  [
+    (p,lieu,theme)=>`Développement — ${lieu}. ${p[0]?.nom||'Perso1'} fait un geste anodin qui attire l'attention de ${p[1]?.nom||'Perso2'}. La team observe sans intervenir. NasDatte zoom lentement.`,
+    (p,lieu,theme)=>`Montée — ${lieu}. Une conversation banale déraille légèrement. ${p[1]?.nom||'Perso2'} dit quelque chose qui a double sens. Seuls ${p[0]?.nom||'Perso1'} et NasDatte comprennent vraiment.`,
+    (p,lieu,theme)=>`Build up — ${lieu}. ${p[0]?.nom||'Perso1'} essaie de paraître naturel mais son langage corporel le trahit. ${p[2]?.nom||'Samosa'} observe depuis son coin, bras croisés, sans rien dire.`,
+  ],
+  // 50-75% tension maximale
+  [
+    (p,lieu,theme)=>`Pic de tension — endroit isolé. ${p[0]?.nom||'Perso1'} et ${p[1]?.nom||'Perso2'} se retrouvent seuls pour la première fois. Ce qui devait pas se dire se dit. NasDatte filme depuis l'extérieur.`,
+    (p,lieu,theme)=>`Confrontation — ${lieu}. Samosa se lève lentement. Tout le monde se tait automatiquement. Il regarde ${p[0]?.nom||'Perso1'} dans les yeux et dit une seule chose. Personne bouge.`,
+    (p,lieu,theme)=>`Révélation — ${lieu}. Quelqu'un reçoit un message. Le lit. Lève les yeux. Regarde ${p[0]?.nom||'Perso1'}. Silence absolu. NasDatte murmure dans son live "voilà c'est là".`,
+  ],
+  // 75-100% dénouement
+  [
+    (p,lieu,theme)=>`Dénouement — extérieur, nuit. ${p[0]?.nom||'Perso1'} est sorti seul. ${p[1]?.nom||'Perso2'} le suit. Cinq mètres de béton entre eux. NasDatte depuis la fenêtre du 3ème, live silencieux.`,
+    (p,lieu,theme)=>`Fin — ${lieu}. La phrase a été dite. Tout le monde sait. Personne parle. ${p[0]?.nom||'Perso1'} regarde le sol. NasDatte baisse son téléphone lentement et coupe le live.`,
+    (p,lieu,theme)=>`Épilogue — dehors. Le quartier continue comme si rien. Mais plus rien sera pareil entre ${p[0]?.nom||'Perso1'} et ${p[1]?.nom||'Perso2'}. NasDatte marche seul, téléphone dans la poche.`,
+  ],
+];
+
+const DIALOGUES=[
+  (p1,p2)=>([`${p1} dit froidement sans croiser le regard`,'T\'as vu ce que j\'ai vu toi... parle',`${p2} répond en regardant ailleurs`,'J\'sais pas de quoi tu parles wesh']),
+  (p1,p2)=>([`${p1} murmure en vérifiant que personne écoute`,'Arrête... c\'est trop risqué là tu sais que c\'est n\'importe quoi',`${p2} serre les mâchoires`,'Je sais... je sais']),
+  (p1,p2)=>([`${p1} lâche en regardant la ville`,'J\'arrive pas à faire semblant wallah j\'arrive pas',`${p2} griffe la rambarde`,'C\'est pas possible frr... tu sais que c\'est pas possible']),
+  (p1,p2)=>([`${p1} dit avec une fausse décontraction`,'Wesh c\'est quoi ce cinéma t\'as vu quoi',`${p2} ne bouge pas, le regarde`,'J\'ai tout vu. Gère ça']),
+  (p1,p2)=>([`${p1} sans se retourner`,'T\'es plus mon reuf',`${p2} reste figé`,'...']),
+  (p1,p2)=>([`${p1} presque en chuchotant`,'Pourquoi t\'as l\'air bizarre toi',`${p2} détourne les yeux`,'J\'trainais... c\'est rien']),
+  (p1,p2)=>([`${p1} d\'une voix plate`,'Y\'a un truc que tu veux me dire ou pas',`${p2} hésite une seconde de trop`,'Non... pourquoi']),
+  (p1,p2)=>([`${p1} en poussant doucement`,'Arrête wesh... c\'est Patatos... t\'as compris ou pas',`${p2} recule, ferme les yeux`,'Je sais... wallah je sais']),
+  (p1,p2)=>([`${p1} face à la caméra de NasDatte sans le faire exprès`,'C\'est n\'importe quoi tout ça wallah',`${p2} baisse la tête`,'Je m\'en veux... je m\'en veux vraiment']),
+  (p1,p2)=>([`${p1} en regardant tout le monde dans la pièce`,'J\'ai un truc à dire et je vais le dire là... devant tout le monde',`${p2} se lève lentement`,'...']),
+  (p1,p2)=>([`${p1} essaie de sourire normalement`,'Tout va bien frr tranquille',`${p2} le regarde de haut en bas`,'Ouais c\'est ça']),
+  (p1,p2)=>([`${p1} frappe doucement à la porte`,'Frr... écoute-moi deux secondes',`${p2} ouvre sans le regarder`,'T\'as deux secondes']),
+];
+
+function getImgPrompt(persos,lieu,prog){
+  const main=persos.filter(p=>!p.always).slice(0,3);
+  const nd=persos.find(p=>p.always);
+  const lieuStr=LIEUX_PROMPTS[lieu]||LIEUX_PROMPTS['appart'];
+
+  let s=lieuStr+'. ';
+  main.forEach(p=>{
+    s+=`${p.nom.toUpperCase()} — anthropomorphic ${p.fruit}, ${p.desc}. `;
+  });
+  if(nd){
+    s+=`NASDATTE — ${nd.desc}, filming secretly with his phone from the background or a corner, eyes wide with disbelief and amusement. `;
   }
-  container.innerHTML = list.map((t,i) => {
-    const isActive = tracks.indexOf(t) === currentIndex;
-    const isFav = favorites.has(t.id);
-    return `<div class="track-item ${isActive?'active':''}" onclick="playTrack(${i})">
-      <span class="item-num">${isActive?'▶':i+1}</span>
-      <div class="item-art">${t.art?`<img src="${t.art}" alt="">`:'◈'}</div>
-      <div class="item-info">
-        <div class="item-title">${t.title||'Unknown'}</div>
-        <div class="item-artist">${t.artist||''}</div>
+  if(prog<.3) s+='Calm surface, tension just beginning, warm ambient light. ';
+  else if(prog<.6) s+='Tension rising, uncomfortable body language, more pronounced shadows. ';
+  else if(prog<.85) s+='Peak dramatic tension, raw emotion on faces, hard contrast lighting. ';
+  else s+='Aftermath. Emotional exhaustion. Empty silence. Cold cinematic night light. ';
+  s+='Highly detailed cinematic 3D cartoon animated movie quality, Pixar-like expressiveness, rich textures, dramatic lighting, expressive faces, clean composition, clear body language, stylized but believable proportions, vertical 9:16.';
+  return s;
+}
+
+function getVidPrompt(persos,lieu,dialogue){
+  const main=persos.filter(p=>!p.always).slice(0,3);
+  const nd=persos.find(p=>p.always);
+  const lieuStr=LIEUX_PROMPTS[lieu]||LIEUX_PROMPTS['appart'];
+
+  let s='Cinematic 3D cartoon style, vertical 9:16, dialogue in French verlan and argot, no background music, dialogue focused scene, ambient room tone only. ';
+  s+=lieuStr+'. ';
+  main.forEach(p=>{s+=`${p.nom.toUpperCase()} is an anthropomorphic ${p.fruit}: ${p.desc}. `;});
+  if(nd) s+=`NASDATTE is an anthropomorphic ${nd.fruit}: ${nd.desc}. `;
+
+  const p1=main[0];const p2=main[1];
+  if(p1&&p2&&dialogue){
+    s+=`ONLY ${p1.nom} and ${p2.nom} speak in this scene. All other characters remain completely silent. `;
+    s+=`${p1.nom} ${dialogue[0]} in French: "${dialogue[1]}". `;
+    s+=`${p2.nom} ${dialogue[2]} in French: "${dialogue[3]}". `;
+  } else if(p1&&dialogue){
+    s+=`ONLY ${p1.nom} speaks in this scene. All other characters remain completely silent. `;
+    s+=`${p1.nom} ${dialogue[0]} in French: "${dialogue[1]}". `;
+  }
+  const cams=['Camera holds still, slow push in as tension builds.','Slow zoom into the character\'s face revealing the micro-expression.','Camera pans slowly from one character to the other.','Static wide shot showing the physical distance between characters.','Low angle making the speaking character feel imposing.'];
+  s+=pick(cams);
+  return s;
+}
+
+async function generateScript(){
+  const btn=document.getElementById('btngen');
+  btn.textContent='⏳ GÉNÉRATION...';
+  btn.classList.add('loading');
+  await new Promise(r=>setTimeout(r,200));
+
+  const themeKey=getVal('theme')||getRandom(THEMES_DATA);
+  const lieuKey=getVal('lieu')||pick(Object.keys(LIEUX_PROMPTS));
+  const tonKey=getVal('ton')||pick(['drama','humour','trash','melan','chaud']);
+  const nb=parseInt(document.getElementById('nbscenes').value);
+
+  const thData=THEMES_DATA[themeKey]||THEMES_DATA['kiff_interdit'];
+  const tnData=TONS_DATA[tonKey]||TONS_DATA['drama'];
+  const selectedP=getPersos();
+  const mainP=selectedP.filter(p=>!p.always);
+
+  const out=document.getElementById('output');
+  out.innerHTML='';
+
+  // Header
+  const hd=document.createElement('div');
+  hd.className='story-header';
+  const p1n=mainP[0]?.nom||'...';
+  const p2n=mainP[1]?.nom||'...';
+  hd.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-family:'Bebas Neue',cursive;font-size:1.5rem;letter-spacing:.05em;color:var(--accent)">${thData.label}</div>
+      <button class="copybtn" onclick="copyAll(this)">Copier tout</button>
+    </div>
+    <div class="tags">
+      ${(thData.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+      <span class="tag">📍 ${lieuKey}</span>
+      <span class="tag">🎭 ${tnData.label}</span>
+      <span class="tag">${nb} scènes</span>
+    </div>
+    <div style="font-size:.75rem;color:var(--muted2);font-family:'Space Mono',monospace;line-height:1.6;margin-top:8px">${tnData.style}</div>
+    <div class="chips" style="margin-top:10px">${selectedP.map(p=>`<span class="chip">${p.emoji} ${p.nom}</span>`).join('')}</div>
+  `;
+  out.appendChild(hd);
+
+  const tensionArc=['intro','setup','build','tension','peak','reveal','fallout','aftermath','silence','fin'];
+
+  for(let i=1;i<=nb;i++){
+    await new Promise(r=>setTimeout(r,60));
+    const prog=i/nb;
+    const tIdx=Math.min(Math.round(prog*(tensionArc.length-1)),tensionArc.length-1);
+
+    // Contexte
+    let ctxArr;
+    if(prog<=.2) ctxArr=CONTEXTES_PAR_PROG[0];
+    else if(prog<=.5) ctxArr=CONTEXTES_PAR_PROG[1];
+    else if(prog<=.75) ctxArr=CONTEXTES_PAR_PROG[2];
+    else ctxArr=CONTEXTES_PAR_PROG[3];
+    const ctx=pick(ctxArr)(mainP,lieuKey,themeKey);
+
+    // Snap
+    const snap=pick(SNAP_VOIX)(p1n,p2n);
+
+    // Dialogue
+    const dlgFn=pick(DIALOGUES);
+    const dlg=dlgFn(p1n,p2n);
+
+    // Prompts
+    const imgP=getImgPrompt(selectedP,lieuKey,prog);
+    const vidP=getVidPrompt(selectedP,lieuKey,dlg);
+
+    const card=document.createElement('div');
+    card.className='scene-card';
+    card.style.animationDelay=`${(i-1)*.04}s`;
+    card.innerHTML=`
+      <div class="sch">
+        <span class="snum">SCÈNE ${i}</span>
+        <span class="sloc">// ${lieuKey.replace(/_/g,' ')}</span>
+        <span class="stens">${tensionArc[tIdx]}</span>
       </div>
-      <button class="item-fav ${isFav?'on':''}" onclick="event.stopPropagation();toggleFav('${t.id}')">${isFav?'♥':'♡'}</button>
-    </div>`;
-  }).join('');
-}
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tab-all').classList.toggle('active', tab==='all');
-  document.getElementById('tab-fav').classList.toggle('active', tab==='fav');
-  renderPlaylist();
-}
-
-async function addTrack() {
-  const input = document.getElementById('sc-url-input');
-  const status = document.getElementById('add-status');
-  const url = input.value.trim();
-  if (!url.includes('soundcloud.com')) {
-    status.textContent = '✗ URL SoundCloud invalide';
-    status.style.color = 'var(--pink)'; return;
+      <div class="scb">
+        <div class="blk">
+          <div class="blbl">Contexte</div>
+          <div class="ctx">${ctx}</div>
+        </div>
+        <div class="snap-block">
+          <div class="snap-lbl">📱 NasDatte — Snap live</div>
+          "${snap}"
+        </div>
+        <div class="blk">
+          <div class="blbl">Prompt image</div>
+          <div class="ptxt">${imgP}</div>
+        </div>
+        <div class="blk">
+          <div class="blbl">Prompt vidéo</div>
+          <div class="ptxt">${vidP}</div>
+        </div>
+      </div>
+    `;
+    out.appendChild(card);
   }
-  status.textContent = '... FETCHING TRACK DATA';
-  status.style.color = 'var(--cyan)';
-  try {
-    const res = await fetch(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    const track = { id:'sc_'+Date.now(), url, title:data.title||url, artist:data.author_name||'', art:data.thumbnail_url||null };
-    tracks.push(track); saveTracks();
-    input.value = '';
-    status.textContent = '✓ ADDED: '+track.title;
-    status.style.color = 'var(--cyan)';
-    renderPlaylist();
-    if (tracks.length===1) playTrack(0);
-  } catch(e) {
-    const track = { id:'sc_'+Date.now(), url, title:url.split('/').pop()||'Track', artist:url.split('/')[3]||'', art:null };
-    tracks.push(track); saveTracks();
-    input.value = '';
-    status.textContent = '✓ ADDED (no metadata)';
-    status.style.color = 'var(--yellow)';
-    renderPlaylist();
-  }
+
+  btn.textContent='⚡ GÉNÉRER LE SCRIPT';
+  btn.classList.remove('loading');
 }
 
-function saveTracks() { localStorage.setItem('gw_tracks', JSON.stringify(tracks)); }
-function saveFavs() { localStorage.setItem('gw_favs', JSON.stringify([...favorites])); }
+function copyAll(btn){
+  const cards=document.querySelectorAll('.scene-card');
+  let txt='';
+  cards.forEach((c,i)=>{
+    const ctx=c.querySelector('.ctx')?.textContent||'';
+    const snap=c.querySelector('.snap-block')?.textContent?.replace('📱 NasDatte — Snap live','').trim()||'';
+    const pts=c.querySelectorAll('.ptxt');
+    txt+=`\n\n=== SCÈNE ${i+1} ===\n\nCONTEXTE:\n${ctx}\n\nSNAP NASDATTE:\n${snap}\n\nPROMPT IMAGE:\n${pts[0]?.textContent||''}\n\nPROMPT VIDÉO:\n${pts[1]?.textContent||''}`;
+  });
+  navigator.clipboard.writeText(txt).then(()=>{
+    if(btn){btn.textContent='✓ Copié';btn.classList.add('ok');setTimeout(()=>{btn.textContent='Copier tout';btn.classList.remove('ok')},2000);}
+  });
+}
 
-loadSCWidget();
-genWaveform();
-renderPlaylist();
+function toggleAll(state){
+  document.querySelectorAll('#perso-list .cbi').forEach(item=>{
+    const cb=item.querySelector('input');
+    if(cb){cb.checked=state;item.classList.toggle('sel',state);}
+  });
+}
 
-document.getElementById('sc-url-input').addEventListener('keydown', e => { if(e.key==='Enter') addTrack(); });
+function initPersos(){
+  const list=document.getElementById('perso-list');
+  PERSOS.forEach(p=>{
+    if(p.always)return;
+    const lbl=document.createElement('label');
+    lbl.className='cbi sel';
+    lbl.innerHTML=`
+      <input type="checkbox" id="cb_${p.id}" checked
+        onchange="this.closest('.cbi').classList.toggle('sel',this.checked)">
+      <div class="dot"></div>
+      <span style="font-size:1rem">${p.emoji}</span>
+      <div>
+        <div class="cbn">${p.nom}</div>
+        <div class="cbs">${p.fruit} — ${p.ref}</div>
+      </div>
+    `;
+    list.appendChild(lbl);
+  });
+}
+
+initPersos();
 </script>
 </body>
 </html>
